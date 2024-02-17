@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flash Light Bill Maker</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+    color: #333;
+  }
+  .container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  form {
+    margin-bottom: 30px;
+  }
+  .product-container {
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  input[type="text"], input[type="number"] {
+    width: calc(50% - 10px);
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+  }
+  input[type="number"] {
+    width: calc(25% - 10px);
+  }
+  input[type="submit"], input[type="button"] {
+    background-color: #4caf50;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  input[type="submit"]:hover, input[type="button"]:hover {
+    background-color: #45a049;
+  }
+  #billsContainer {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  .bill {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 5px;
+    background-color: #fff;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  }
+  .bill h2 {
+    margin-top: 0;
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+  }
+  .bill p {
+    margin: 0;
+    line-height: 1.5;
+  }
+  .bill ul {
+    padding-left: 20px;
+    margin-top: 5px;
+  }
+  .bill ul li {
+    list-style-type: disc;
+    margin-bottom: 5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Flash Light Bill Maker</h1>
+  <form id="billForm">
+    <div id="productsContainer">
+      <div class="product-container">
+        <label for="productName1">Product Name:</label>
+        <input type="text" class="productName" name="productName[]" required>
+
+        <label for="productPrice1">Product Price:</label>
+        <input type="number" class="productPrice" name="productPrice[]" min="0" step="0.01" required>
+
+        <label for="productQuantity1">Quantity:</label>
+        <input type="number" class="productQuantity" name="productQuantity[]" min="1" required>
+      </div>
+    </div>
+
+    <input type="button" id="addProduct" value="Add Product">
+    <br><br>
+
+    <input type="submit" value="Generate Bill">
+  </form>
+
+  <div id="billsContainer">
+    <h2>Saved Bills</h2>
+    <div id="savedBills"></div>
+  </div>
+</div>
+
+<script>
+  // Function to calculate total price for a product
+  function calculateProductTotal(price, quantity) {
+    return price * quantity;
+  }
+
+  // Function to calculate total price for all products in the bill
+  function calculateTotal(products) {
+    let total = 0;
+    products.forEach(product => {
+      total += calculateProductTotal(product.price, product.quantity);
+    });
+    return total;
+  }
+
+  // Function to render bill details
+  function renderBill(bill) {
+    const billContainer = document.createElement('div');
+    billContainer.classList.add('bill');
+    billContainer.innerHTML = `
+      <h2>Bill for ${bill.clientName}</h2>
+      <p>Total: $${bill.total.toFixed(2)}</p>
+      <p>Products:</p>
+      <ul>
+        ${bill.products.map(product => `<li>${product.name} - Price: $${product.price.toFixed(2)}, Quantity: ${product.quantity}</li>`).join('')}
+      </ul>
+    `;
+    document.getElementById('savedBills').appendChild(billContainer);
+  }
+
+  // Function to save bill to local storage
+  function saveBill(bill) {
+    let savedBills = JSON.parse(localStorage.getItem('bills')) || [];
+    savedBills.push(bill);
+    localStorage.setItem('bills', JSON.stringify(savedBills));
+  }
+
+  // Function to retrieve and render saved bills from local storage
+  function renderSavedBills() {
+    const savedBills = JSON.parse(localStorage.getItem('bills')) || [];
+    savedBills.forEach(bill => {
+      renderBill(bill);
+    });
+  }
+
+  // Add event listener to the form for submitting bills
+  document.getElementById('billForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const clientName = prompt('Enter client name:');
+    const products = [];
+    document.querySelectorAll('.product-container').forEach(container => {
+      const name = container.querySelector('.productName').value;
+      const price = parseFloat(container.querySelector('.productPrice').value);
+      const quantity = parseInt(container.querySelector('.productQuantity').value);
+      products.push({ name, price, quantity });
+    });
+    const total = calculateTotal(products);
+    const bill = { clientName, products, total };
+    renderBill(bill);
+    saveBill(bill);
+  });
+
+  // Add event listener to the "Add Product" button
+  document.getElementById('addProduct').addEventListener('click', function() {
+    const productsContainer = document.getElementById('productsContainer');
+    const productCount = productsContainer.querySelectorAll('.product-container').length + 1;
+
+    const productContainer = document.createElement('div');
+    productContainer.classList.add('product-container');
+
+    productContainer.innerHTML = `
+      <label for="productName${productCount}">Product Name:</label>
+      <input type="text" class="productName" name="productName[]" required>
+
+      <label for="productPrice${productCount}">Product Price:</label>
+      <input type="number" class="productPrice" name="productPrice[]" min="0" step="0.01" required>
+
+      <label for="productQuantity${productCount}">Quantity:</label>
+      <input type="number" class="productQuantity" name="productQuantity[]" min="1" required>
+    `;
+
+    productsContainer.appendChild(productContainer);
+  });
+
+  // Render saved bills when the page loads
+  renderSavedBills();
+</script>
+
+</body>
+</html>
+
+
+
